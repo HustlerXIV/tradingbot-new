@@ -179,30 +179,35 @@ def compute_bb_position(prices, period=20, num_std=2):
 
 
 def load_timeframe_data(filepath):
-    """
-    Load a single timeframe data file
+    import pandas as pd
 
-    Args:
-        filepath: Path to CSV file with columns: time, open, high, low, close, volume
+    # Detect separator automatically
+    df = pd.read_csv(filepath, sep=None, engine='python')
 
-    Returns:
-        DataFrame with datetime index
-    """
-    df = pd.read_csv(filepath)
+    # Clean column names: <DATE> → date
+    df.columns = [c.strip('<>').lower() for c in df.columns]
 
-    # Convert time to datetime
-    df['time'] = pd.to_datetime(df['time'])
+    # Build datetime column
+    if 'date' in df.columns and 'time' in df.columns:
+        df['time'] = pd.to_datetime(df['date'] + ' ' + df['time'])
+
+    elif 'time' in df.columns:
+        df['time'] = pd.to_datetime(df['time'])
+
+    else:
+        raise ValueError(f"No valid time column found in {filepath}")
+
+    # Normalize volume column
+    if 'tickvol' in df.columns:
+        df.rename(columns={'tickvol': 'volume'}, inplace=True)
+    elif 'tick_volume' in df.columns:
+        df.rename(columns={'tick_volume': 'volume'}, inplace=True)
+
+    # 🔥 IMPORTANT FIX (THIS IS WHAT YOU ARE MISSING)
     df = df.set_index('time')
     df = df.sort_index()
 
-    # Ensure we have required columns
-    required = ['open', 'high', 'low', 'close', 'volume']
-    for col in required:
-        if col not in df.columns:
-            raise ValueError(f"Missing required column: {col}")
-
     return df
-
 
 def align_timeframes(tf_dict, base_timeframe='M5'):
     """
@@ -254,10 +259,10 @@ def load_and_compute_all_timeframes(base_timeframe='M5', data_dir='data'):
     timeframe_files = {
         'M5': 'xauusd_m5.csv',
         'M15': 'xauusd_m15.csv',
-        'H1': 'xauusd_h1_from_m1.csv',
-        'H4': 'xauusd_h4_from_m1.csv',
-        'D1': 'xauusd_d1_from_m1.csv',
-        'W1': 'xauusd_w1.csv',  # Optional - will skip if not found
+        # 'H1': 'xauusd_h1_from_m1.csv',
+        # 'H4': 'xauusd_h4_from_m1.csv',
+        # 'D1': 'xauusd_d1_from_m1.csv',
+        # 'W1': 'xauusd_w1.csv',  # Optional - will skip if not found
     }
 
     # Load and compute features for each timeframe

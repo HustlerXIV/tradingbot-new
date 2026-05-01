@@ -23,7 +23,6 @@ logger = logging.getLogger(__name__)
 def load_economic_calendar(filepath='data/economic_events_2015_2025.json'):
     """
     Load economic calendar from JSON file
-
     Returns:
         List of event dicts with keys: time, event, impact
     """
@@ -38,12 +37,11 @@ def load_economic_calendar(filepath='data/economic_events_2015_2025.json'):
     with open(filepath, 'r') as f:
         events = json.load(f)
 
-    # Convert datetime strings to datetime objects and rename to 'time'
+    # FIX: always normalize to pandas Timestamp
     for event in events:
-        event['time'] = pd.to_datetime(event['datetime'])
-        # Keep datetime for backward compatibility if needed
-        if 'datetime' in event and 'time' not in event:
-            event['time'] = event['datetime']
+        raw_time = event.get('datetime') or event.get('time')
+
+        event['time'] = pd.to_datetime(raw_time)
 
     logger.info(f"   ✅ Loaded {len(events)} economic events")
 
@@ -61,7 +59,11 @@ def find_next_event(timestamp, events):
     Returns:
         Dict with next event info, or None if no future events
     """
-    future_events = [e for e in events if e['time'] > timestamp]
+    # future_events = [e for e in events if e['time'] > timestamp]
+    future_events = [
+        e for e in events
+        if pd.to_datetime(e['time']) > pd.to_datetime(timestamp)
+    ]
 
     if not future_events:
         return None
@@ -159,7 +161,10 @@ def compute_calendar_features(df_timestamps, calendar):
 
         if next_event:
             # Feature 1: Hours to next event
-            time_diff = (next_event['time'] - ts).total_seconds() / 3600.0
+            event_time = pd.to_datetime(next_event['time'])
+            current_time = pd.to_datetime(ts)
+
+            time_diff = (event_time - current_time).total_seconds() / 3600.0
             hours_to_event.append(min(time_diff, 168.0))  # Cap at 1 week
 
             # Feature 4: Is high impact
