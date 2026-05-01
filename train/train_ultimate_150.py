@@ -40,7 +40,7 @@ BATCH_SIZE = 16
 PREFILL_STEPS = 5_000  # Random exploration to fill buffer
 TRAIN_STEPS = 1_000_000  # Training steps
 TRAIN_EVERY = 4  # Train every N environment steps
-SAVE_EVERY = 10_000
+SAVE_EVERY = 1_000
 
 SAVE_DIR = "train/dreamer_ultimate"
 SAVE_PREFIX = "ultimate_150_xauusd"
